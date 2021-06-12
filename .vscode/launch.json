@@ -6,7 +6,7 @@
         "request": "launch",
         "preLaunchTask": "build",
         "program": "${workspaceFolder}/bin/Debug/net5.0/crypto1.dll",
-        "args": [],
+        "args": ["asfasf"],
         "cwd": "${workspaceFolder}",
         "stopAtEntry": false,
         "console": "internalConsole"
