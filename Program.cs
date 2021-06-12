@@ -66,10 +66,21 @@ namespace crypto1
             return result;
         }
 
-        public static string trim(byte[] bs, int blockLength = 16){
+        public static string trim(byte[] bs, int blockLength = 16)
+        {
             // .. <- range operator
             // ^  <- inverse indexing operator
             return Encoding.Default.GetString(bs[blockLength..^(int)bs[^1]]);
+        }
+
+        public static byte[] encrypt(byte[] bs)
+        {
+            return new byte[1];
+        }
+
+        public static byte[] decrypt(byte[] bs)
+        {
+            return new byte[1];
         }
     }
 }
