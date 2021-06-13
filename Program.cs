@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Text;
 using System.Linq;
+using System.Buffers.Binary;
+using System.Collections;
 using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.CommandLine;
@@ -38,20 +40,35 @@ namespace crypto1
             encryptCommand.Handler = CommandHandler.Create<int,string>(
                 (intOption, inputString) => {
                     var bs = pad(inputString,intOption);
+                    var unpaddedBs = Encoding.Unicode.GetBytes(inputString);
                     Console.WriteLine($"Arguments supplied: {intOption} {encryptCommand.Name} {inputString}");
                     Console.WriteLine($"Padded string: {Encoding.Unicode.GetString(bs)}");
                     Console.WriteLine($"Trimmed {trim(bs)}"); 
+                    Console.WriteLine("ECB");
                     var k = pad("abc",16,true);
                     var encrypted = encrypt_ECB(bs,k);
                     Console.WriteLine($"Encrypted string {Encoding.Unicode.GetString(encrypted)}");
                     var decrypted = decrypt_ECB(encrypted,k);
                     Console.WriteLine($"Decrypted string {Encoding.Unicode.GetString(decrypted)}");
                     Console.WriteLine($"Trimmed {trim(decrypted)}");
+                    Console.WriteLine("CBC");
                     encrypted = encrypt_CBC(bs,k);
                     Console.WriteLine($"Encrypted string {Encoding.Unicode.GetString(encrypted)}");
                     decrypted = decrypt_CBC(encrypted,k);
                     Console.WriteLine($"Decrypted string {Encoding.Unicode.GetString(decrypted)}");
                     Console.WriteLine($"Trimmed {trim(decrypted)}");
+                    Console.WriteLine("CFB");
+                    encrypted = encrypt_CFB(bs,k);
+                    Console.WriteLine($"Encrypted string {Encoding.Unicode.GetString(encrypted)}");
+                    decrypted = decrypt_CFB(encrypted,k);
+                    Console.WriteLine($"Decrypted string {Encoding.Unicode.GetString(decrypted)}");
+                    Console.WriteLine($"Trimmed {trim(decrypted)}");
+                    var mac = generate_OMAC(bs,k);
+                    Console.WriteLine($"OMAC token {Encoding.Unicode.GetString(mac)}");
+                    var sameLen = encrypt_CBC_CS(unpaddedBs,k);
+                    Console.WriteLine($"Unpadded CBC {sameLen.Length} {Encoding.Unicode.GetString(sameLen)}");
+                    var decr = decrypt_CBC_CS(sameLen,k);
+                    Console.WriteLine($"Unpadded CBC {sameLen.Length} {Encoding.Unicode.GetString(decr)}");
                 }
             );
             decryptCommand.Handler = CommandHandler.Create<int,string>(
@@ -80,7 +97,7 @@ namespace crypto1
             padLength = (padLength == 0) ? blockLength : padLength;
 
             // create the padding and preamble byte arrays
-            var padding = Enumerable.Repeat<byte>((byte)padLength,padLength).ToArray();;
+            var padding = Enumerable.Repeat<byte>(0,padLength).ToArray();
             var preamble = key ? new byte[0] : new byte[blockLength];
 
             // cryptographically secure RNG
@@ -90,11 +107,51 @@ namespace crypto1
             return preamble.Concat(byteString).Concat(padding).ToArray();
         }
 
-        public static string trim(byte[] bs, int blockLength = 16)
+        public static byte[] pad_zero(byte[] block, int len)
+        {
+            var output = new byte[len];
+            Array.Copy(block,output,block.Length);
+            return output;
+        }
+
+        public static byte[] pad_ECB_bits(byte[] ct, byte[] key, int len, int blockSize = 16)
+        {
+            var output = new byte[len];
+            // Copy cyphertext into buffer
+            //Array.Copy(ct,output,ct.Length);
+            // get padding bits
+            var finalBlockLength = ct.Length % blockSize;
+            var finalBlock = new byte[blockSize];
+            Array.Copy(ct,ct.Length-finalBlockLength,finalBlock,0,finalBlockLength);
+            var penultimateBlock = ct[^(blockSize+finalBlockLength)..^finalBlockLength];
+            var ECB_decrypted = AES_decrypt_block(penultimateBlock,key);
+            // According to slides: need to xor C_n-1 with { C_n, 0.0 }
+            //var xored = xorVectors()
+            Console.WriteLine($"Unpadded CBC {Encoding.Unicode.GetString(ECB_decrypted)}");
+            Array.Copy(ECB_decrypted,finalBlockLength,finalBlock,finalBlockLength,blockSize-finalBlockLength);
+
+
+            // copy padding bits
+            Array.Copy(ct,output,output.Length-2*blockSize);
+            Array.Copy(penultimateBlock, 0, output, output.Length-2*blockSize, blockSize);
+            Array.Copy(finalBlock, 0, output, output.Length-blockSize, blockSize);
+            return output;
+        }
+
+        public static byte[] swap_final_blocks(byte[] buffer, int blockSize = 16) 
+        {
+            var output = new byte[buffer.Length];
+            Array.Copy(buffer,output,buffer.Length-2*blockSize);
+            Array.Copy(buffer,buffer.Length-2*blockSize,output,output.Length-blockSize,blockSize);
+            Array.Copy(buffer,buffer.Length-blockSize,output,output.Length-2*blockSize,blockSize);
+            return output;
+        }
+
+        public static string trim(byte[] bs, int blockLength = 16, int prepend = 1)
         {
             // .. <- range operator
             // ^  <- inverse indexing operator
-            return Encoding.Unicode.GetString(bs[blockLength..^(int)bs[^1]]);
+            return Encoding.Unicode.GetString(bs[(prepend*blockLength)..^(int)bs[^1]]);
         }
 
         /* 
@@ -129,6 +186,81 @@ namespace crypto1
             return result;
         }
 
+        public static byte[] encrypt_CBC_CS(byte[] bs, byte[] key)
+        {
+            var sizeBytes = 16;
+            var blockMultiple = (int)(bs.Length / sizeBytes) + 1;
+            var padded = pad_zero(bs,blockMultiple * sizeBytes);
+            var result = new byte[padded.Length];
+            var block = new byte[sizeBytes];
+            var iv = Enumerable.Repeat<byte>(0,sizeBytes).ToArray();
+            for (int i = 0; i < padded.Length; i += sizeBytes) {
+                block = xorVectors(iv,padded,i);
+                block = AES_encrypt_block(block,key);
+                Array.Copy(block,0,result,i,sizeBytes);
+                iv = result[i..(i+sizeBytes)];
+            }
+            result = swap_final_blocks(result);
+            return result[..bs.Length];
+        }
+
+        public static byte[] encrypt_CFB(byte[] bs, byte[] key)//string keySource)
+        {
+            var sizeBytes = 16;
+            var result = new byte[bs.Length];
+            var block = new byte[sizeBytes];
+            var iv = new byte[sizeBytes];
+            // random initialization vector
+            var rngcsp = RandomNumberGenerator.Create();
+            rngcsp.GetBytes(iv);
+            for (int i = 0; i < bs.Length - 1; i += sizeBytes) {
+                block = AES_encrypt_block(iv,key);
+                block = xorVectors(block,bs,i);
+                Array.Copy(block,0,result,i,sizeBytes);
+                iv = result[i..(i+sizeBytes)];
+            }
+            return result;
+        }
+
+        public static List<byte[]> keygen_OMAC(byte[] key) 
+        {
+            var key1 = new byte[key.Length];
+            var key2 = new byte[key.Length];
+            var cLookup = new Dictionary<int,int> {
+                { 8 ,   0x1b },
+                { 16,   0x87 },
+                { 32,   0x425},
+            };
+            var c = new BitArray(BitConverter.GetBytes(cLookup[key.Length]));
+            // k0 -> k1
+            var k1 = new BitArray(key);
+            k1 = !k1[^1] ? k1.LeftShift(1) : k1.LeftShift(1).Xor(c);
+            // k1 -> k2
+            var k2 = new BitArray(k1);
+            k2 = !k2[^1] ? k2.LeftShift(1) : k2.LeftShift(1).Xor(c);
+            // Put into byte arrays
+            k1.CopyTo(key1,0);
+            k2.CopyTo(key2,0);
+            return new List<byte[]> { key1 , key2 };
+        }
+
+        public static byte[] generate_OMAC(byte[] bs, byte[] key)
+        {
+            var keys = keygen_OMAC(key);
+            var sizeBytes = 16;
+            var lastBlock = bs.Length % sizeBytes;
+            var keyXOR = (lastBlock == 0) ?
+                xorVectors(bs[^sizeBytes..],keys[0],0) :
+                xorVectors(bs[^lastBlock..],keys[1],0);
+            // reusable XOR vector starts at all 0's
+            var block = Enumerable.Repeat<byte>(0,sizeBytes).ToArray();
+            for (int i = 0; i < bs.Length; i += sizeBytes) {
+                block = xorVectors(block,bs,i);
+                block = AES_encrypt_block(block,key);
+            }
+            return block;
+        }
+
         public static byte[] decrypt_ECB(byte[] ct, byte[] key)//string keySource)
         {
             var sizeBytes = 16;
@@ -156,9 +288,42 @@ namespace crypto1
             return result;
         }
         
+        public static byte[] decrypt_CBC_CS(byte[] ct, byte[] key)//string keySource)
+        {
+            var sizeBytes = 16;
+            var blockMultiple = (int)(ct.Length / sizeBytes) + 1;
+            var padded = pad_ECB_bits(ct,key,blockMultiple*sizeBytes);
+            padded = swap_final_blocks(padded);
+            var result = new byte[padded.Length];
+            var block = new byte[sizeBytes];
+            var iv = Enumerable.Repeat<byte>(0,sizeBytes).ToArray();
+            for (int i = 0; i < ct.Length; i += sizeBytes) {
+                block = AES_decrypt_block(padded[i..(i+sizeBytes)],key);
+                block = xorVectors(block,iv,0);
+                Array.Copy(block,0,result,i,sizeBytes);
+                iv = padded[i..(i+sizeBytes)];
+            }
+            return result[..ct.Length];
+        }
+
+        public static byte[] decrypt_CFB(byte[] ct, byte[] key)//string keySource)
+        {
+            var sizeBytes = 16;
+            var result = new byte[ct.Length];
+            var block = new byte[sizeBytes];
+            var iv = new byte[sizeBytes];
+            for (int i = 0; i < ct.Length; i += sizeBytes) {
+                block = AES_encrypt_block(iv,key);
+                block = xorVectors(block,ct,i);
+                Array.Copy(block,0,result,i,sizeBytes);
+                iv = ct[i..(i+sizeBytes)];
+            }
+            return result;
+        }
+
         public static byte[] xorVectors(byte[] vec1, byte[] vec2, int offset){
             var result = new byte[vec1.Length];
-            for(int i = 0; i < vec1.Length; i++) {
+            for(int i = 0; i < Math.Min(vec1.Length,vec2.Length-offset); i++) {
                 result[i] = (byte)(vec1[i] ^ vec2[i+offset]);
             }
             return result;
