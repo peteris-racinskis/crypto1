@@ -66,9 +66,13 @@ namespace crypto1
                     var mac = generate_OMAC(bs,k);
                     Console.WriteLine($"OMAC token {Encoding.Unicode.GetString(mac)}");
                     var sameLen = encrypt_CBC_CS(unpaddedBs,k);
-                    Console.WriteLine($"Unpadded CBC {sameLen.Length} {Encoding.Unicode.GetString(sameLen)}");
+                    Console.WriteLine($"Unpadded CBC encr {sameLen.Length} {Encoding.Unicode.GetString(sameLen)}");
                     var decr = decrypt_CBC_CS(sameLen,k);
-                    Console.WriteLine($"Unpadded CBC {sameLen.Length} {Encoding.Unicode.GetString(decr)}");
+                    Console.WriteLine($"Unpadded CBC decr {sameLen.Length} {Encoding.Unicode.GetString(decr)}");
+                    var nopad = encrypt_CFB_nopad(unpaddedBs,k);
+                    Console.WriteLine($"Unpadded CFB encr {nopad.Length} {Encoding.Unicode.GetString(nopad)}");
+                    var nopadecr = decrypt_CFB_nopad(nopad,k);
+                    Console.WriteLine($"Unpadded CFB decr {nopadecr.Length} {Encoding.Unicode.GetString(nopadecr)}");
                 }
             );
             decryptCommand.Handler = CommandHandler.Create<int,string>(
@@ -114,6 +118,13 @@ namespace crypto1
             return output;
         }
 
+        public static byte[] pad_zero_start(byte[] pt, int blockSize = 16)
+        {
+            var output = new byte[blockSize+pt.Length];
+            Array.Copy(pt,0,output,blockSize,pt.Length);
+            return output;
+        }
+
         public static byte[] pad_ECB_bits(byte[] ct, byte[] key, int len, int blockSize = 16)
         {
             var output = new byte[len];
@@ -127,7 +138,6 @@ namespace crypto1
             var ECB_decrypted = AES_decrypt_block(penultimateBlock,key);
             // According to slides: need to xor C_n-1 with { C_n, 0.0 }
             //var xored = xorVectors()
-            Console.WriteLine($"Unpadded CBC {Encoding.Unicode.GetString(ECB_decrypted)}");
             Array.Copy(ECB_decrypted,finalBlockLength,finalBlock,finalBlockLength,blockSize-finalBlockLength);
 
 
@@ -218,6 +228,25 @@ namespace crypto1
                 block = xorVectors(block,bs,i);
                 Array.Copy(block,0,result,i,sizeBytes);
                 iv = result[i..(i+sizeBytes)];
+            }
+            return result;
+        }
+
+        public static byte[] encrypt_CFB_nopad(byte[] bs, byte[] key)//string keySource)
+        {
+            var sizeBytes = 16;
+            bs = pad_zero_start(bs);
+            var result = new byte[bs.Length];
+            var block = new byte[sizeBytes];
+            var iv = new byte[sizeBytes];
+            // random initialization vector
+            var rngcsp = RandomNumberGenerator.Create();
+            rngcsp.GetBytes(iv);
+            for (int i = 0; i < bs.Length - 1; i += sizeBytes) {
+                block = AES_encrypt_block(iv,key);
+                block = xorVectors(block,bs,i);
+                Array.Copy(block,0,result,i,Math.Min(sizeBytes,result.Length-i));
+                iv = result[i..(Math.Min(i+sizeBytes,result.Length))];
             }
             return result;
         }
@@ -319,6 +348,21 @@ namespace crypto1
                 iv = ct[i..(i+sizeBytes)];
             }
             return result;
+        }
+
+        public static byte[] decrypt_CFB_nopad(byte[] ct, byte[] key)//string keySource)
+        {
+            var sizeBytes = 16;
+            var result = new byte[ct.Length];
+            var block = new byte[sizeBytes];
+            var iv = new byte[sizeBytes];
+            for (int i = 0; i < ct.Length; i += sizeBytes) {
+                block = AES_encrypt_block(iv,key);
+                block = xorVectors(block,ct,i);
+                Array.Copy(block,0,result,i,Math.Min(sizeBytes,result.Length-i));
+                iv = ct[i..Math.Min(i+sizeBytes,result.Length)];
+            }
+            return result[sizeBytes..];
         }
 
         public static byte[] xorVectors(byte[] vec1, byte[] vec2, int offset){
