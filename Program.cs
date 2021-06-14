@@ -45,7 +45,7 @@ namespace crypto1
                     Console.WriteLine($"Padded string: {Encoding.Unicode.GetString(bs)}");
                     Console.WriteLine($"Trimmed {trim(bs)}"); 
                     Console.WriteLine("ECB");
-                    var k = pad("abc",16,true);
+                    var k = keygen();
                     var encrypted = encrypt_ECB(bs,k);
                     Console.WriteLine($"Encrypted string {Encoding.Unicode.GetString(encrypted)}");
                     var decrypted = decrypt_ECB(encrypted,k);
@@ -123,6 +123,15 @@ namespace crypto1
             var output = new byte[blockSize+pt.Length];
             Array.Copy(pt,0,output,blockSize,pt.Length);
             return output;
+        }
+
+
+        public static byte[] keygen()
+        {
+            Aes aes = Aes.Create();
+            aes.KeySize = 128;
+            aes.GenerateKey();
+            return aes.Key;
         }
 
         public static byte[] pad_ECB_bits(byte[] ct, byte[] key, int len, int blockSize = 16)
@@ -260,7 +269,8 @@ namespace crypto1
                 { 16,   0x87 },
                 { 32,   0x425},
             };
-            var c = new BitArray(BitConverter.GetBytes(cLookup[key.Length]));
+            var ints = new Int32[]{ cLookup[key.Length], 0, 0, 0};
+            var c = new BitArray(ints);
             // k0 -> k1
             var k1 = new BitArray(key);
             k1 = !k1[^1] ? k1.LeftShift(1) : k1.LeftShift(1).Xor(c);
