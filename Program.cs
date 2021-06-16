@@ -30,6 +30,7 @@ namespace commandlinetest
                 ),
             };
             rootCommand.Description = "AES encryptor/decryptor. Inputs MUST be at least 1 block in length!";
+            
             // Configure encrypt command handler and arguments
             var encryptCommand = (Command)rootCommand.Children.GetByAlias("encrypt");
             encryptCommand.AddArgument(new Argument<string>(

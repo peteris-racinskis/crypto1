@@ -19,8 +19,6 @@ namespace crypto1
         public bool cfbMode { get; set; }
         private static int sizeBytes = 16;
         private static int keySizeBytes = 16;
-        //public List<byte[]> omacKeys;
-        ///public byte[] omacBuffer;
 
         
         public AESHandler() {}
@@ -123,6 +121,7 @@ namespace crypto1
         public static byte[] Keygen()
         {
             var buf = new byte[keySizeBytes];
+            // Some weirdness with how encryption works under the hood in .NET
             using (Aes aes = Aes.Create())
             {
                 aes.KeySize = 128;
@@ -140,8 +139,6 @@ namespace crypto1
             Array.Copy(ct,ct.Length-finalBlockLength,finalBlock,0,finalBlockLength);
             var penultimateBlock = ct[^(blockSize+finalBlockLength)..^finalBlockLength];
             var ECB_decrypted = AES_decrypt_block(penultimateBlock,key);
-            // According to slides: need to xor C_n-1 with { C_n, 0.0 }
-            //var xored = xorVectors()
             Array.Copy(ECB_decrypted,finalBlockLength,finalBlock,finalBlockLength,blockSize-finalBlockLength);
             // copy padding bits
             Array.Copy(ct,output,output.Length-2*blockSize);
@@ -157,13 +154,6 @@ namespace crypto1
             Array.Copy(buffer,buffer.Length-2*blockSize,output,output.Length-blockSize,blockSize);
             Array.Copy(buffer,buffer.Length-blockSize,output,output.Length-2*blockSize,blockSize);
             return output;
-        }
-
-        public static string trim(byte[] bs, int blockLength = 16, int prepend = 1)
-        {
-            // .. <- range operator
-            // ^  <- inverse indexing operator
-            return Encoding.Unicode.GetString(bs[(prepend*blockLength)..^(int)bs[^1]]);
         }
 
         /* 
@@ -233,8 +223,6 @@ namespace crypto1
         public byte[] ComputeOMAC(byte[] buffer)
         {   
             // Make a copy of the array
-            //omacBuffer = new byte[buffer.Length];
-            //Array.Copy(buffer,omacBuffer,buffer.Length);
             var buf = new byte[buffer.Length];  
             Array.Copy(buffer,buf,buf.Length);
             // unless expicitly initialized, get new key
