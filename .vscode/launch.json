@@ -1,15 +1,127 @@
 {
     "configurations": [
     {
-        "name": ".NET Core Launch (console)",
+        "name": ".NET Core Launch (console) encr cbc w/o key",
         "type": "coreclr",
         "request": "launch",
         "preLaunchTask": "build",
         "program": "${workspaceFolder}/bin/Debug/net5.0/crypto1.dll",
-        "args": ["asfasasdkjhgaskdhgskdghsdhgksdhgkshdgksdghksdhkgskdgsf", "encrypt"],
+        "args": ["encrypt", "alhshgoahgoiahgeahgeahwge"],
         "cwd": "${workspaceFolder}",
         "stopAtEntry": false,
         "console": "internalConsole"
-    }
+    },
+    {
+        "name": ".NET Core Launch (console) encr cbc w key to file",
+        "type": "coreclr",
+        "request": "launch",
+        "preLaunchTask": "build",
+        "program": "${workspaceFolder}/bin/Debug/net5.0/crypto1.dll",
+        "args": [
+            "--outfile",
+            "./encrypted-test-cbc",
+            "encrypt",
+            "alhshgoahgoiahgeahgeahwge",
+            "--key-enc",
+            "89-C7-A3-35-C3-BD-97-99-05-88-FF-80-62-0F-7A-52"
+        ],
+        "cwd": "${workspaceFolder}",
+        "stopAtEntry": false,
+        "console": "internalConsole"
+    },
+    {
+        "name": ".NET Core Launch (console) encr cfb w/o key",
+        "type": "coreclr",
+        "request": "launch",
+        "preLaunchTask": "build",
+        "program": "${workspaceFolder}/bin/Debug/net5.0/crypto1.dll",
+        "args": ["--cfb", "encrypt", "alhshgoahgoiahgeahgeahwge"],
+        "cwd": "${workspaceFolder}",
+        "stopAtEntry": false,
+        "console": "internalConsole"
+    },
+    {
+        "name": ".NET Core Launch (console) encr cfb w key to file",
+        "type": "coreclr",
+        "request": "launch",
+        "preLaunchTask": "build",
+        "program": "${workspaceFolder}/bin/Debug/net5.0/crypto1.dll",
+        "args": [
+            "--cfb",
+            "--outfile",
+            "./encrypted-test-cfb",
+            "encrypt",
+            "alhshgoahgoiahgeahgeahwge",
+            "--key-enc",
+            "89-C7-A3-35-C3-BD-97-99-05-88-FF-80-62-0F-7A-52"
+        ],
+        "cwd": "${workspaceFolder}",
+        "stopAtEntry": false,
+        "console": "internalConsole"
+    },
+    {
+        "name": ".NET Core Launch (console) help",
+        "type": "coreclr",
+        "request": "launch",
+        "preLaunchTask": "build",
+        "program": "${workspaceFolder}/bin/Debug/net5.0/crypto1.dll",
+        "args": ["--help"],
+        "cwd": "${workspaceFolder}",
+        "stopAtEntry": false,
+        "console": "internalConsole"
+    },
+    {
+        "name": ".NET Core Launch (console) encr help",
+        "type": "coreclr",
+        "request": "launch",
+        "preLaunchTask": "build",
+        "program": "${workspaceFolder}/bin/Debug/net5.0/crypto1.dll",
+        "args": ["encrypt", "--help"],
+        "cwd": "${workspaceFolder}",
+        "stopAtEntry": false,
+        "console": "internalConsole"
+    },
+    {
+        "name": ".NET Core Launch (console) decr help",
+        "type": "coreclr",
+        "request": "launch",
+        "preLaunchTask": "build",
+        "program": "${workspaceFolder}/bin/Debug/net5.0/crypto1.dll",
+        "args": ["decrypt", "--help"],
+        "cwd": "${workspaceFolder}",
+        "stopAtEntry": false,
+        "console": "internalConsole"
+    },
+    {
+        "name": ".NET Core Launch (console) decr cbc w/o mac",
+        "type": "coreclr",
+        "request": "launch",
+        "preLaunchTask": "build",
+        "program": "${workspaceFolder}/bin/Debug/net5.0/crypto1.dll",
+        "args": [
+            "decrypt", 
+            "./encrypted-test-cbc.bin", 
+            "89-C7-A3-35-C3-BD-97-99-05-88-FF-80-62-0F-7A-52"
+        ],
+        "cwd": "${workspaceFolder}",
+        "stopAtEntry": false,
+        "console": "internalConsole"
+    },
+    {
+        "name": ".NET Core Launch (console) decr cfb w/o mac",
+        "type": "coreclr",
+        "request": "launch",
+        "preLaunchTask": "build",
+        "program": "${workspaceFolder}/bin/Debug/net5.0/crypto1.dll",
+        "args": [
+            "--cfb",
+            "decrypt", 
+            "./encrypted-test-cfb.bin", 
+            "89-C7-A3-35-C3-BD-97-99-05-88-FF-80-62-0F-7A-52"
+        ],
+        "cwd": "${workspaceFolder}",
+        "stopAtEntry": false,
+        "console": "internalConsole"
+    },
     ]
 }
