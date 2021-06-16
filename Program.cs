@@ -41,30 +41,44 @@ namespace commandlinetest
                 getDefaultValue: () => "",
                 "(optional) encryption key"
             ));
-            encryptCommand.Handler = CommandHandler.Create<string, string, bool, string>(
-                (plaintext,keyEnc,cfb,outfile) => { 
+            encryptCommand.AddOption(new Option<string>(
+                "--key-sig",
+                getDefaultValue: () => "",
+                "(optional) signature key"
+            ));
+            encryptCommand.Handler = CommandHandler.Create<string, string, bool, string,string>(
+                (plaintext,keyEnc,cfb,outfile,keySig) => { 
                     var encryptor = new AESHandler(cfb,plaintext,keyEnc);
-                    string hex;
+                    if (!string.IsNullOrEmpty(keySig)) encryptor.macKey = AESHandler.HexToBytes(keySig);
+                    string hex = $"Original plaintext:\n{plaintext}";
                     encryptor.Encrypt();            
-                    Console.WriteLine($"Use cfb? {cfb.ToString()}");
-                    Console.WriteLine($"This is the key {keyEnc}");
-                    Console.WriteLine($"This is the key {AESHandler.UnicodeString(encryptor.key)}");
-                    Console.WriteLine($"This is the key {AESHandler.HexString(encryptor.key)}");
-                    hex = $"Symmetric key:\n{AESHandler.HexString(encryptor.key)}";
-                    Console.WriteLine($"This is the plaintext: {plaintext}");
-                    Console.WriteLine($"This is the plaintext: {AESHandler.HexString(encryptor.byteString)}");
-                    Console.WriteLine($"This is the ciphertext: {AESHandler.UnicodeString(encryptor.result)}");
-                    Console.WriteLine($"This is the ciphertext: {AESHandler.HexString(encryptor.result)}");
+                    hex=$"{hex}\nUse cfb? : {cfb.ToString()}";
+                    //Console.WriteLine($"This is the key {keyEnc}");
+                    //Console.WriteLine($"This is the key {AESHandler.UnicodeString(encryptor.key)}");
+                    //Console.WriteLine($"This is the key {AESHandler.HexString(encryptor.key)}");
+                    hex = $"{hex}\nSymmetric key:\n{AESHandler.HexString(encryptor.key)}";
+                    //Console.WriteLine($"This is the plaintext: {plaintext}");
+                    //Console.WriteLine($"This is the plaintext: {AESHandler.HexString(encryptor.byteString)}");
+                    //Console.WriteLine($"This is the ciphertext: {AESHandler.UnicodeString(encryptor.result)}");
+                    //Console.WriteLine($"This is the ciphertext: {AESHandler.HexString(encryptor.result)}");
                     hex = $"{hex}\nCiphertext (hex):\n{AESHandler.HexString(encryptor.result)}";
                     if (!string.IsNullOrEmpty(outfile)) File.WriteAllBytes($"{outfile}.bin",encryptor.result);
                     if (cfb) {
                         var token = encryptor.GenerateOMAC();
+                        //Console.WriteLine($"Plaintext input: {AESHandler.HexString(AESHandler.GetBytes(plaintext))}");
+                        //Console.WriteLine($"Plaintext in object: {AESHandler.HexString(encryptor.byteString)}");
+                        //Console.WriteLine($"OMAC operation actual buffer: {AESHandler.HexString(encryptor.omacBuffer)}");
                         var tokenKey = encryptor.macKey;
-                        Console.WriteLine($"This is the MAC key {AESHandler.HexString(tokenKey)}");
-                        Console.WriteLine($"This is the MAC token {AESHandler.HexString(token)}");
+                        //var omacKeys = encryptor.omacKeys;
+                        //Console.WriteLine($"This is the MAC key {AESHandler.HexString(tokenKey)}");
+                        //Console.WriteLine($"This is the MAC token {AESHandler.HexString(token)}");
                         if (!string.IsNullOrEmpty(outfile)) File.WriteAllBytes($"{outfile}.token",encryptor.result);
                         hex = $"{hex}\nMAC key:\n{AESHandler.HexString(tokenKey)}";
                         hex = $"{hex}\nMAC token (hex):\n{AESHandler.HexString(token)}";
+                        //hex = $"{hex}\nOMAC key (hex):\n{AESHandler.HexString(omacKeys[0])}";
+                        //2A-03-65-BC-1A-2D-F4-BE-85-97-4D-E6-96-6B-24-44
+                        //hex = $"{hex}\nOMAC key (hex):\n{AESHandler.HexString(omacKeys[1])}";
+                        //54-06-CA-78-35-5A-E8-7D-0B-2F-9B-CC-2D-D7-48-88
                     }
                     if (!string.IsNullOrEmpty(outfile)) File.WriteAllText($"{outfile}-hex.txt",hex);
                     Console.WriteLine(hex);
@@ -90,21 +104,32 @@ namespace commandlinetest
                 "--key-ver",
                 "(hex) verification key"
             ));
-            decryptCommand.Handler = CommandHandler.Create<string,string,bool,string,string>(
-                (ciphertext,key,cfb,MAC,keyVer) => { 
+            decryptCommand.Handler = CommandHandler.Create<string,string,bool,string,string,string>(
+                (ciphertext,keyDec,cfb,MAC,keyVer,outfile) => { 
                     var ct = File.ReadAllBytes(ciphertext);
-                    var decryptor = new AESHandler(cfb,ct,key,MAC,keyVer);
-                    Console.WriteLine($"Use cfb? {cfb.ToString()}");
+                    var decryptor = new AESHandler(cfb,ct,keyDec,MAC,keyVer);
+                    string hex = $"Original ciphertext:\n{AESHandler.HexString(ct)}";           
+                    hex=$"{hex}\nUse cfb? : {cfb.ToString()}";
+                    hex = $"{hex}\nSymmetric key:\n{AESHandler.HexString(decryptor.key)}"; 
                     decryptor.Decrypt();
-                    Console.WriteLine($"This is the key {key}");
-                    Console.WriteLine($"This is the key {AESHandler.UnicodeString(decryptor.key)}");
-                    Console.WriteLine($"This is the key {AESHandler.HexString(decryptor.key)}");
-                    Console.WriteLine($"This is the ciphertext: {AESHandler.UnicodeString(decryptor.byteString)}");
-                    Console.WriteLine($"This is the ciphertext: {AESHandler.HexString(decryptor.byteString)}");
-                    Console.WriteLine($"This is the plaintext: {AESHandler.UnicodeString(decryptor.result)}");
-                    Console.WriteLine($"This is the plaintext: {AESHandler.HexString(decryptor.result)}");
-                    Console.WriteLine($"This is the plaintext: {AESHandler.ASCIIString(decryptor.result)}");
-                    //61-6C-68-73-68-67-6F-61-68-67-6F-69-61-68-67-65-61-68-67-65-61-68-77-67-65
+                    hex = $"{hex}\nPlaintext (hex):\n{AESHandler.HexString(decryptor.result)}";
+                    hex = $"{hex}\nPlaintext (ASCII):\n{AESHandler.ASCIIString(decryptor.result)}";
+                    hex = $"{hex}\nPlaintext (Unicode):\n{AESHandler.UnicodeString(decryptor.result)}";
+                    if (!(string.IsNullOrEmpty(MAC) || string.IsNullOrEmpty(keyVer))) {
+                        hex = $"{hex}\nSignature key (hex):\n{keyVer}";
+                        hex = $"{hex}\nProvided token (hex):\n{MAC}";
+                        var same = decryptor.VerifyOMAC();
+                        //Console.WriteLine($"OMAC operation actual buffer: {AESHandler.HexString(decryptor.omacBuffer)}");
+                        //var omacKeys = decryptor.omacKeys;
+                        hex = $"{hex}\nComputed token (hex):\n{AESHandler.HexString(decryptor.newMac)}";
+                        hex = $"{hex}\nAre tokens the same? : {same.ToString()}";
+                        //hex = $"{hex}\nOMAC key (hex):\n{AESHandler.HexString(omacKeys[0])}";
+                        //2A-03-65-BC-1A-2D-F4-BE-85-97-4D-E6-96-6B-24-44
+                        //hex = $"{hex}\nOMAC key (hex):\n{AESHandler.HexString(omacKeys[1])}";
+                        //54-06-CA-78-35-5A-E8-7D-0B-2F-9B-CC-2D-D7-48-88
+                    }
+                    if (!string.IsNullOrEmpty(outfile)) File.WriteAllText($"{outfile}-hex.txt",hex);
+                    Console.WriteLine(hex);
                 }
             );
             

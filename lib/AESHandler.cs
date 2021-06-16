@@ -14,10 +14,13 @@ namespace crypto1
         public byte[] byteString { get; set; }
         public byte[] result { get; set; }
         public byte[] mac { get; set; }
+        public byte[] newMac { get; set; }
         public byte[] macKey { get; set; }
         public bool cfbMode { get; set; }
         private static int sizeBytes = 16;
         private static int keySizeBytes = 16;
+        //public List<byte[]> omacKeys;
+        ///public byte[] omacBuffer;
 
         
         public AESHandler() {}
@@ -119,10 +122,14 @@ namespace crypto1
 
         public static byte[] Keygen()
         {
-            Aes aes = Aes.Create();
-            aes.KeySize = 128;
-            aes.GenerateKey();
-            return aes.Key;
+            var buf = new byte[keySizeBytes];
+            using (Aes aes = Aes.Create())
+            {
+                aes.KeySize = 128;
+                aes.GenerateKey();
+                Array.Copy(aes.Key,buf,keySizeBytes);
+            }            
+            return buf;
         }
         
         public static byte[] PadECBBits(byte[] ct, byte[] key, int len, int blockSize = 16)
@@ -182,16 +189,19 @@ namespace crypto1
         }
         public void EncryptCFBNoPad()
         {
-            byteString = PadZeroStart(byteString);
-            result = new byte[byteString.Length];
+            // This was messing up my OMAC! I was padding the 
+            // plaintext and then computing the signature!
+            // ^ solution: make a local copy
+            var byteStringCopy = PadZeroStart(byteString);
+            result = new byte[byteStringCopy.Length];
             var block = new byte[sizeBytes];
             var iv = new byte[sizeBytes];
             // random initialization vector
             var rngcsp = RandomNumberGenerator.Create();
             rngcsp.GetBytes(iv);
-            for (int i = 0; i < byteString.Length - 1; i += sizeBytes) {
+            for (int i = 0; i < byteStringCopy.Length - 1; i += sizeBytes) {
                 block = AES_encrypt_block(iv,key);
-                block = xorVectors(block,byteString,i);
+                block = xorVectors(block,byteStringCopy,i);
                 Array.Copy(block,0,result,i,Math.Min(sizeBytes,result.Length-i));
                 iv = result[i..(Math.Min(i+sizeBytes,result.Length))];
             }
@@ -220,21 +230,41 @@ namespace crypto1
             return new List<byte[]> { key1 , key2 };
         }
 
-        public byte[] GenerateOMAC()
-        {
-            macKey = macKey ?? Keygen(); // unless expicitly initialized, get new key
+        public byte[] ComputeOMAC(byte[] buffer)
+        {   
+            // Make a copy of the array
+            //omacBuffer = new byte[buffer.Length];
+            //Array.Copy(buffer,omacBuffer,buffer.Length);
+            var buf = new byte[buffer.Length];  
+            Array.Copy(buffer,buf,buf.Length);
+            // unless expicitly initialized, get new key
+            macKey = macKey ?? Keygen(); 
             var keys = KeygenOMAC(macKey);
-            var lastBlock = byteString.Length % sizeBytes;
+            // Calculate last block length, XOR with the key
+            var lastBlock = buf.Length % sizeBytes;
             var keyXOR = (lastBlock == 0) ?
-                xorVectors(byteString[^sizeBytes..],keys[0],0) :
-                xorVectors(byteString[^lastBlock..],keys[1],0);
-            // reusable XOR vector starts at all 0's
+                xorVectors(buf[^sizeBytes..],keys[0],0) :
+                xorVectors(buf[^lastBlock..],keys[1],0);
+            Array.Copy(keyXOR,0,buf,buf.Length-lastBlock,lastBlock);
+            // Grind the whole thing through AES
             var block = Enumerable.Repeat<byte>(0,sizeBytes).ToArray();
-            for (int i = 0; i < byteString.Length; i += sizeBytes) {
-                block = xorVectors(block,byteString,i);
+            for (int i = 0; i < buf.Length; i += sizeBytes) {
+                block = xorVectors(block,buf,i);
                 block = AES_encrypt_block(block,key);
             }
+            //omacKeys = keys;
             return block;
+        }
+
+        public byte[] GenerateOMAC()
+        {
+            return ComputeOMAC(byteString);
+        }
+
+        public bool VerifyOMAC()
+        {
+            newMac = ComputeOMAC(result);
+            return ByteSpanCompare(mac,newMac);
         }
 
         public void DecryptCBCCS()
@@ -274,6 +304,11 @@ namespace crypto1
                 result[i] = (byte)(vec1[i] ^ vec2[i+offset]);
             }
             return result;
+        }
+
+        public static bool ByteSpanCompare(ReadOnlySpan<byte> a1, ReadOnlySpan<byte> a2)
+        {
+            return a1.SequenceEqual(a2);
         }
 
         /*
