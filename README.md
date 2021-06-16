@@ -2,7 +2,7 @@
 
 ### How it works
 
-The .NET core cryptographic library is used for ECB encryption of individual message blocks, while the AESHandler class takes care of the rest - block chaining, parsing, padding, the XOR operations, etc.
+The .NET core cryptographic library is used for ECB encryption of individual message blocks, while the AESHandler class takes care of the rest - block chaining, parsing, padding, the XOR operations, etc. Yes, I know, the methods can be refactored to be more DRY, but every time I refactor something, something breaks, and dealing with this takes time.
 
 ### How to use it
 
