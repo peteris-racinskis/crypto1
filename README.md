@@ -1,4 +1,4 @@
-## crypto1 - a badly-written implementation of CBC and CFB block chaining modes for AES
+## crypto1 - a badly-written implementation of CBC and CFB block chaining modes for AES. Works (and tested) on Linux and Windows x86-64 systems.
 
 ### How it works
 
@@ -6,9 +6,9 @@ The .NET core cryptographic library is used for ECB encryption of individual mes
 
 ### How to use it
 
-1. Download one of the archived binary distributions (the .NET core 5.0 runtime is packaged inside, which is the whole reason why I went with .NET over Python), extract it somewhere;
+1. Download one of the archived [binary distributions available here](https://github.com/peteris-racinskis/crypto1/releases/tag/v1.0) (the .NET core 5.0 runtime is packaged inside, which is the whole reason why I went with .NET over Python - but this makes the distributions fairly large), extract it somewhere;
 2. Navigate to the root directory of the application where the **crypto1** executable file is located
-3. Execute it.
+3. Execute it. On windows this means you need to append a ".exe" to the executable name.
 
 For the sake of simplicity (mine, the programmer's, not yours, dear user), encryptable strings are provided directly in the command line; encryption/decryption keys, MAC tokens and MAC keys are provided as hexadecimal strings separated by the symbol '-'; encrypted output can be directed into files, which have no encoding; decryption is always done by providing a filesystem path to an encrypted binary.
 
