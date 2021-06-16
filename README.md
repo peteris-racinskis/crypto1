@@ -65,7 +65,7 @@ Options:
   -?, -h, --help       Show help and usage information
 ```
 
-Encrypt a string in CFB mode, write output to file, generate a signature token. Note that when **encrypting** a file, the **output file extension must not** be specified (as 3 different output files are generated). The user is not required to provide a key during encryption as one will be automatically generated.
+Encrypt a string in CFB mode, write output to file, generate a signature token. Note that when **encrypting** a file, the **output file extension must not** be specified (as 3 different output files are generated - the encrypted binary, the token binary and a human-readable output text file). The user is not required to provide a key during encryption as one will be automatically generated.
 
 ```
 $ ./crypto1 --cfb --outfile ./encrypted-test-cfb encrypt alhshgoahgoiahgeahgeahwge \
