@@ -14,14 +14,14 @@ The .NET core cryptographic library is used for ECB encryption of individual mes
 
 ```
 # To demonstrate key generation, execute: (order irrelevant)
-# ./launcher cbc-encrypt-nokey
-# ./launcher cfb-encrypt-nokey
+# ./launcher.sh cbc-encrypt-nokey
+# ./launcher.sh cfb-encrypt-nokey
 #
 # For cbc pipeline, execute in order:
-# ./launcher cbc-encrypt
+# ./launcher.sh cbc-encrypt
 #  ^-- inspect results in outputs/
 # ./launcher cbc-decrypt
-#  ^-- inspect results in outputs/
+#  ^-- inspect.sh results in outputs/
 #
 # For cfb pipeline, execute in order:
 # ./launcher.sh cfb-encrypt
