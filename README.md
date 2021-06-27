@@ -6,7 +6,7 @@ The .NET core cryptographic library is used for ECB encryption of individual mes
 
 ### How to use it
 
-1. Download one of the archived [binary distributions available here](https://github.com/peteris-racinskis/crypto1/releases/tag/v1.0) (the .NET core 5.0 runtime is packaged inside, which is the whole reason why I went with .NET over Python - but this makes the distributions fairly large), extract it somewhere;
+1. Download one of the archived [binary distributions available here](https://github.com/peteris-racinskis/crypto1/releases/tag/v2.0) (the .NET core 5.0 runtime is packaged inside, which is the whole reason why I went with .NET over Python - but this makes the distributions fairly large), extract it somewhere;
 2. Navigate to the root directory of the application where the **crypto1** executable file and **launcher.sh** is located
 3. Make sure these files have exec privileges and the launch script has the correct shebang.
 
