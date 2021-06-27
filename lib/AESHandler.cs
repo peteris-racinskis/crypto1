@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Text;
 using System.Linq;
 using System.Collections;
@@ -27,26 +28,26 @@ namespace crypto1
         /// Constructor for encrypting a string
         /// </summary>
         /// <param name="paramKey"> Optional key (hexadecimal format as per exampe)</param>
-        public AESHandler(bool mode, string paramText, string paramKey = null)
+        public AESHandler(bool mode, string plaintextPath, string keyPath = null)
         {
             cfbMode = mode;
-            byteString = GetBytes(paramText);
-            key = (!string.IsNullOrEmpty(paramKey)) ? HexToBytes(paramKey) : Keygen();
+            byteString = File.ReadAllBytes(plaintextPath);
+            key = (!string.IsNullOrEmpty(keyPath)) ? HexToBytes(File.ReadAllText(keyPath)) : Keygen();
         }
 
         /// <summary>
         /// Constructor for decrypting a file
         /// </summary>
-        public AESHandler(bool mode, byte[] ct, string paramKey, string paramMac = null, string keyVer = null)
+        public AESHandler(bool mode, byte[] ct, string keyPath, string macPath = null, string keyVerPath = null)
         {
             cfbMode = mode;
             byteString = ct;
-            key = HexToBytes(paramKey);
-            if (!string.IsNullOrEmpty(paramMac)) {
-                mac = HexToBytes(paramMac);
+            key = HexToBytes(File.ReadAllText(keyPath));
+            if (!string.IsNullOrEmpty(macPath)) {
+                mac = File.ReadAllBytes(macPath);
             }
-            if (!string.IsNullOrEmpty(keyVer)) {
-                macKey = HexToBytes(keyVer);
+            if (!string.IsNullOrEmpty(keyVerPath)) {
+                macKey = HexToBytes(File.ReadAllText(keyVerPath));
             }
         }
 

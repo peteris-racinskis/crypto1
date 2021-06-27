@@ -18,7 +18,7 @@ namespace commandlinetest
                 ),
                 new Option<string>(
                     "--outfile",
-                    "base file path ($.bin/$.token added automatically)"
+                    "base file path ($.bin/$.token/.. added automatically)"
                 ),
                 new Command(
                     "encrypt",
@@ -35,7 +35,7 @@ namespace commandlinetest
             var encryptCommand = (Command)rootCommand.Children.GetByAlias("encrypt");
             encryptCommand.AddArgument(new Argument<string>(
                 "plaintext",
-                "text to encrypt"
+                "path to file to encrypt"
             ));
             encryptCommand.AddOption(new Option<string>(
                 "--key-enc",
@@ -50,21 +50,29 @@ namespace commandlinetest
             encryptCommand.Handler = CommandHandler.Create<string, string, bool, string,string>(
                 (plaintext,keyEnc,cfb,outfile,keySig) => { 
                     var encryptor = new AESHandler(cfb,plaintext,keyEnc);
-                    if (!string.IsNullOrEmpty(keySig)) encryptor.macKey = AESHandler.HexToBytes(keySig);
-                    string hex = $"Original plaintext:\n{plaintext}";
+                    if (!string.IsNullOrEmpty(keySig)) encryptor.macKey = 
+                        AESHandler.HexToBytes(File.ReadAllText(keySig));
+                    string hex = $"Original plaintext:\n{File.ReadAllText(plaintext)}";
                     encryptor.Encrypt();            
                     hex=$"{hex}\nUse cfb? : {cfb.ToString()}";
                     hex = $"{hex}\nSymmetric key:\n{AESHandler.HexString(encryptor.key)}";
                     hex = $"{hex}\nCiphertext (hex):\n{AESHandler.HexString(encryptor.result)}";
-                    if (!string.IsNullOrEmpty(outfile)) File.WriteAllBytes($"{outfile}.bin",encryptor.result);
+                    if (!string.IsNullOrEmpty(outfile)) 
+                    {
+                        File.WriteAllBytes($"{outfile}-out.bin",encryptor.result);
+                        File.WriteAllText($"{outfile}-symkey.txt",AESHandler.HexString(encryptor.key));
+                    }
                     if (cfb) {
                         var token = encryptor.GenerateOMAC();
                         var tokenKey = encryptor.macKey;
-                        if (!string.IsNullOrEmpty(outfile)) File.WriteAllBytes($"{outfile}.token",encryptor.result);
+                        if (!string.IsNullOrEmpty(outfile)) 
+                        {
+                            File.WriteAllBytes($"{outfile}-mac.bin",token);
+                            File.WriteAllText($"{outfile}-signkey.txt",AESHandler.HexString(tokenKey));
+                        }
                         hex = $"{hex}\nMAC key:\n{AESHandler.HexString(tokenKey)}";
                         hex = $"{hex}\nMAC token (hex):\n{AESHandler.HexString(token)}";
                     }
-                    if (!string.IsNullOrEmpty(outfile)) File.WriteAllText($"{outfile}-hex.txt",hex);
                     Console.WriteLine(hex);
                 }
             );
@@ -99,6 +107,10 @@ namespace commandlinetest
                     hex = $"{hex}\nPlaintext (hex):\n{AESHandler.HexString(decryptor.result)}";
                     hex = $"{hex}\nPlaintext (ASCII):\n{AESHandler.ASCIIString(decryptor.result)}";
                     hex = $"{hex}\nPlaintext (Unicode):\n{AESHandler.UnicodeString(decryptor.result)}";
+                    if (!string.IsNullOrEmpty(outfile)) 
+                    {
+                        File.WriteAllBytes($"{outfile}-out.txt",decryptor.result);
+                    }
                     if (!(string.IsNullOrEmpty(MAC) || string.IsNullOrEmpty(keyVer))) {
                         hex = $"{hex}\nSignature key (hex):\n{keyVer}";
                         hex = $"{hex}\nProvided token (hex):\n{MAC}";
@@ -106,7 +118,6 @@ namespace commandlinetest
                         hex = $"{hex}\nComputed token (hex):\n{AESHandler.HexString(decryptor.newMac)}";
                         hex = $"{hex}\nAre tokens the same? : {same.ToString()}";
                     }
-                    if (!string.IsNullOrEmpty(outfile)) File.WriteAllText($"{outfile}-hex.txt",hex);
                     Console.WriteLine(hex);
                 }
             );

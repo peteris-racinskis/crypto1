@@ -6,7 +6,7 @@
         "request": "launch",
         "preLaunchTask": "build",
         "program": "${workspaceFolder}/bin/Debug/net5.0/crypto1.dll",
-        "args": ["encrypt", "alhshgoahgoiahgeahgeahwge"],
+        "args": ["--outfile", "outputs/cbc-keygen", "encrypt", "outputs/plaintext.txt"],
         "cwd": "${workspaceFolder}",
         "stopAtEntry": false,
         "console": "internalConsole"
@@ -19,11 +19,11 @@
         "program": "${workspaceFolder}/bin/Debug/net5.0/crypto1.dll",
         "args": [
             "--outfile",
-            "./encrypted-test-cbc",
+            "outputs/encrypted-test-cbc",
             "encrypt",
-            "alhshgoahgoiahgeahgeahwge",
+            "outputs/plaintext.txt",
             "--key-enc",
-            "89-C7-A3-35-C3-BD-97-99-05-88-FF-80-62-0F-7A-52"
+            "outputs/symkey.txt"
         ],
         "cwd": "${workspaceFolder}",
         "stopAtEntry": false,
@@ -35,7 +35,7 @@
         "request": "launch",
         "preLaunchTask": "build",
         "program": "${workspaceFolder}/bin/Debug/net5.0/crypto1.dll",
-        "args": ["--cfb", "encrypt", "alhshgoahgoiahgeahgeahwge"],
+        "args": ["--cfb","--outfile", "outputs/cfb-keygen",  "encrypt", "outputs/plaintext.txt"],
         "cwd": "${workspaceFolder}",
         "stopAtEntry": false,
         "console": "internalConsole"
@@ -49,13 +49,13 @@
         "args": [
             "--cfb",
             "--outfile",
-            "./encrypted-test-cfb",
+            "outputs/encrypted-test-cfb",
             "encrypt",
-            "alhshgoahgoiahgeahgeahwge",
+            "outputs/plaintext.txt",
             "--key-enc",
-            "89-C7-A3-35-C3-BD-97-99-05-88-FF-80-62-0F-7A-52",
+            "outputs/symkey.txt",
             "--key-sig",
-            "95-81-32-5E-8D-16-7A-DF-C2-CB-26-73-CB-35-12-22"
+            "outputs/signkey.txt"
         ],
         "cwd": "${workspaceFolder}",
         "stopAtEntry": false,
@@ -70,13 +70,13 @@
         "args": [
             "--cfb",
             "--outfile",
-            "./encrypted-test-cfb",
+            "outputs/encrypted-test-cfb",
             "encrypt",
-            "alhshgoahgoiahgeahgeahwge",
+            "outputs/plaintext.txt",
             "--key-enc",
-            "89-C7-A3-35-C3-BD-97-99-05-88-FF-80-62-0F-7A-52",
+            "outputs/symkey.txt",
             "--key-sig",
-            "95-81-32-5E-8D-16-7A-DF-C2-CB-26-73-CB-35-12-22"
+            "outputs/signkey.txt"
         ],
         "cwd": "${workspaceFolder}",
         "stopAtEntry": false,
@@ -122,9 +122,11 @@
         "preLaunchTask": "build",
         "program": "${workspaceFolder}/bin/Debug/net5.0/crypto1.dll",
         "args": [
+            "--outfile",
+            "outputs/decrypted-test-cbc",
             "decrypt", 
-            "./encrypted-test-cbc.bin", 
-            "89-C7-A3-35-C3-BD-97-99-05-88-FF-80-62-0F-7A-52"
+            "outputs/encrypted-test-cbc-out.bin", 
+            "outputs/symkey.txt"
         ],
         "cwd": "${workspaceFolder}",
         "stopAtEntry": false,
@@ -138,9 +140,11 @@
         "program": "${workspaceFolder}/bin/Debug/net5.0/crypto1.dll",
         "args": [
             "--cfb",
+            "--outfile",
+            "outputs/decrypted-test-cfb",
             "decrypt", 
-            "./encrypted-test-cfb.bin", 
-            "89-C7-A3-35-C3-BD-97-99-05-88-FF-80-62-0F-7A-52"
+            "outputs/encrypted-test-cfb-out.bin", 
+            "outputs/symkey.txt"
         ],
         "cwd": "${workspaceFolder}",
         "stopAtEntry": false,
@@ -154,13 +158,15 @@
         "program": "${workspaceFolder}/bin/Debug/net5.0/crypto1.dll",
         "args": [
             "--cfb",
+            "--outfile",
+            "outputs/decrypted-test-cfb",
             "decrypt", 
-            "./encrypted-test-cfb.bin", 
-            "89-C7-A3-35-C3-BD-97-99-05-88-FF-80-62-0F-7A-52",
+            "outputs/encrypted-test-cfb-out.bin", 
+            "outputs/symkey.txt",
             "--MAC",
-            "8B-23-E1-99-A1-E3-55-BF-B5-62-8E-73-7B-A3-49-BC",
+            "outputs/encrypted-test-cfb-mac.bin",
             "--key-ver",
-            "95-81-32-5E-8D-16-7A-DF-C2-CB-26-73-CB-35-12-22"
+            "outputs/signkey.txt"
         ],
         "cwd": "${workspaceFolder}",
         "stopAtEntry": false,
@@ -175,12 +181,12 @@
         "args": [
             "--cfb",
             "decrypt", 
-            "./encrypted-test-cfb.bin", 
-            "89-C7-A3-35-C3-BD-97-99-05-88-FF-80-62-0F-7A-52",
+            "outputs/encrypted-test-cfb-out.bin", 
+            "outputs/symkey.txt",
             "--MAC",
-            "8B-23-E1-99-A1-E3-55-BF-B5-62-8E-73-7B-A3-49-BC",
+            "ouputs/encrypted-test-cfb-mac.bin",
             "--key-ver",
-            "95-81-32-5E-8D-16-7A-DF-C2-CB-26-73-CB-35-12-22"
+            "outputs/signkey.txt"
         ],
         "cwd": "${workspaceFolder}",
         "stopAtEntry": false,
